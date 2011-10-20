@@ -39,7 +39,7 @@ class DecisionForm(forms.ModelForm):
                    'description': tinymce.widgets.TinyMCE(mce_attrs=mce_attrs_setting),
                    'feedback': tinymce.widgets.TinyMCE(mce_attrs=mce_attrs_setting),
                    'decided_date': JQueryUIDateWidget,
-                   'effective_date': JQueryUIDateWidget,
+                   'effective_date': JQueryUIDateWidget( format='%d%m%yy' ),
                    'review_date': JQueryUIDateWidget,
                    'expiry_date': JQueryUIDateWidget,
                    'deadline': JQueryUIDateWidget,

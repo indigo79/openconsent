@@ -17,3 +17,8 @@ class JQueryUIDateWidget(forms.DateInput):
 
     def __init__(self, attrs={}, format=None):
         super(JQueryUIDateWidget, self).__init__(attrs={'class': 'vDateField', 'size': '10'}, format=format)
+
+    def get_context_data(self):
+        ctx = super(JQueryUIDateWidget, self).get_context_data()
+        ctx['format'] = '%d-%m-%yy'
+        return ctx
