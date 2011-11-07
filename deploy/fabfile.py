@@ -97,17 +97,17 @@ def production():
     env.hosts = ['lin-' + project_settings.project_name + '.aptivate.org:48001']
     _local_setup()
     
-def production_test1():
+def production_houseofawesome():
     """ use production environment on remote host"""
-    env.project_dir = env.project + '_test1'
-    env.environment = 'production_test1'
+    env.project_dir = env.project + '_houseofawesome'
+    env.environment = 'production_houseofawesome'
     env.hosts = ['lin-' + project_settings.project_name + '.aptivate.org:48001']
     _local_setup()
 
-def production_test2():
+def production_seedltd():
     """ use production environment on remote host"""
-    env.project_dir = env.project + '_test2'
-    env.environment = 'production_test2'
+    env.project_dir = env.project + '_seedltd'
+    env.environment = 'production_seedltd'
     env.hosts = ['lin-' + project_settings.project_name + '.aptivate.org:48001']
     _local_setup()
 
@@ -138,7 +138,13 @@ def load_fixtures():
     """load fixtures for this environment"""
     require('tasks_bin', provided_by=env.valid_envs)
     with settings(warn_only=True):
-        sudo(env.tasks_bin + ' load_fixtures')
+        sudo(env.tasks_bin + ' load_admin_user:' + env.environment)
+        sudo(env.tasks_bin + ' load_django_site_data:' + env.environment)
+
+def load_sample_data():
+    """load fixtures for this environment"""
+    require('tasks_bin', provided_by=env.valid_envs)
+    sudo(env.tasks_bin + ' load_sample_data')
 
 def link_apache_conf(apache_conf_name=None):
     """link the apache.conf file"""

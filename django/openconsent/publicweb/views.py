@@ -4,15 +4,20 @@ from django.shortcuts import render_to_response, get_object_or_404
 from django.template import RequestContext
 from django.core.urlresolvers import reverse
 from django.contrib.auth.decorators import login_required
-
-from models import Decision
-from forms import DecisionForm, FeedbackFormSet, FilterForm
-from decision_table import DecisionTable
+from django.views.generic import list_detail
+from django.http import HttpResponse
+from django.utils.translation import ugettext_lazy as _
 
 import unicodecsv
-from django.http import HttpResponse
-from publicweb.proposal_table import ProposalTable
-    
+
+from models import Decision
+from forms import DecisionForm, FeedbackFormSet
+from forms import SortForm
+from forms import FilterForm
+
+#TODO: Exporting as csv is a generic function that can be required of any database.
+#Therefore it should be its own app.
+#This looks like it's already been done... see https://github.com/joshourisman/django-tablib
 def export_csv(request):
     ''' Create the HttpResponse object with the appropriate CSV header and corresponding CSV data from Decision.
 	Expected input: request (not quite sure what this is!)
@@ -48,24 +53,45 @@ def export_csv(request):
         writer.writerow([unicode(fieldOutput(obj,field)).encode("utf-8","replace") for field in field_names])
     return response
 
-@login_required        
-def decision_list(request):  
-    filter = Decision.CONSENSUS_STATUS
-    queryset = Decision.objects.filter(status=filter)
-            
-    decisions = DecisionTable(list(queryset), order_by=request.GET.get('sort'))
-        
-    return render_to_response('decision_list.html',
-        RequestContext(request, dict(decisions=decisions)))
+# TODO: a better way to handle all these list views is to create a single view for listing items
+# that view will use a search function that takes a 'filter' parameter and an 'order_by' parameter and gives an ordered queryset back.
+# The list view will use a single template but will pass a parameter as extra context to individualise the page
+
+proposal_context = {'page_title' : _("Current Active Proposals"),
+                     'class' : 'proposal'}
+
+consensus_context = {'page_title' : _("Decisions Made"),
+                     'class' : 'consensus'}
+
+archived_context = {'page_title' : _("Archived Decisions"),
+                     'class' : 'archived'}
+
+context_list = { 'proposal' : proposal_context,
+             'consensus' : consensus_context,
+             'archived' : archived_context,
+             }
+
+#Codes are used to dosge translation in urls.
+#Need to think of a better way to do this...
+context_codes = { 'proposal' : Decision.PROPOSAL_STATUS,
+             'consensus' : Decision.CONSENSUS_STATUS,
+             'archived' : Decision.ARCHIVED_STATUS,
+             }
 
 @login_required        
-def proposal_list(request):
-    filter = Decision.PROPOSAL_STATUS
-    queryset = Decision.objects.filter(status=filter)      
-    proposals = ProposalTable(list(queryset), order_by=request.GET.get('sort'))
-        
-    return render_to_response('proposal_list.html',
-        RequestContext(request, dict(proposals=proposals)))
+def listing(request,status):
+    extra_context = context_list[status]
+    extra_context['sort_form'] = SortForm(request.GET)
+    status_code = context_codes[status]
+    
+    queryset = _filter(_sort(request), status_code)
+    
+    return list_detail.object_list(
+        request,
+        queryset,
+        template_name = 'consensus_list.html',
+        extra_context = extra_context
+        )
 
 @login_required
 def modify_decision(request, decision_id = None):
@@ -76,7 +102,7 @@ def modify_decision(request, decision_id = None):
     
     if request.method == "POST":
         if request.POST.get('submit', None) == "Cancel":
-            return HttpResponseRedirect(reverse(decision_list))
+            return HttpResponseRedirect(reverse(listing, args=['proposal']))
         
         else:
             decision_form = DecisionForm(data=request.POST, 
@@ -95,7 +121,7 @@ def modify_decision(request, decision_id = None):
                     else:
                         decision.remove_watcher(request.user)
                     feedback_formset.save()
-                    return HttpResponseRedirect(reverse(decision_list))
+                    return HttpResponseRedirect(reverse(listing, args=['proposal']))
 
     else:
         feedback_formset = FeedbackFormSet(instance=decision)
@@ -108,8 +134,20 @@ def modify_decision(request, decision_id = None):
 @login_required
 def add_decision(request):
     return modify_decision(request)
-    
 
 @login_required    
 def edit_decision(request, decision_id):
     return modify_decision(request, decision_id)
+
+def _sort(request):
+    sort_form = SortForm(request.GET)
+    if sort_form.is_valid() and sort_form.cleaned_data['sort']:
+        order = str(sort_form.cleaned_data['sort'])
+    else:
+        order = 'id'
+
+    return Decision.objects.order_by(order)
+
+def _filter(queryset, status):    
+    return queryset.filter(status=status)
+        

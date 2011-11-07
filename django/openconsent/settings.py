@@ -136,7 +136,6 @@ INSTALLED_APPS = (
     'publicweb',
     'tinymce',
     'south',
-    'django_tables2',
     'tagging'
 )
 

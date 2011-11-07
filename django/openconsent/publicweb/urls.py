@@ -1,10 +1,10 @@
 from django.conf.urls.defaults import patterns, url
-from publicweb.views import add_decision, edit_decision, decision_list, \
-proposal_list
-from publicweb.models import Decision
-
 from django.views.generic.list_detail import object_detail
-from publicweb.views import export_csv
+from django.views.generic.simple import redirect_to
+
+from views import add_decision, edit_decision, listing, \
+                     export_csv
+from models import Decision
 
 urlpatterns = patterns('openconsent.publicweb.views',
     url(r'^export_csv/$',
@@ -21,17 +21,8 @@ urlpatterns = patterns('openconsent.publicweb.views',
         { 'queryset': Decision.objects.all(),
          'template_name': 'decision_detail.html'},
         name='view_decision'),
-    url(r'^proposal/list/$',
-        proposal_list,
-        name='proposal_list'),
-    url(r'^decision/list/$',
-        decision_list,
-        name='decision_list')
+    url(r'^list/(?P<status>[a-z]+)/$',
+        listing,
+        name='list'),
+    url(r'^$', redirect_to, {'url': 'list/proposal/'}),
     )
-
-urlpatterns += patterns('django.contrib.auth.views',
-    url(r'^login/',
-        'login', name='login'),
-    url(r'^logout/',
-        'logout', {'template_name':'registration/logout.html'}, name='logout'),
-)
